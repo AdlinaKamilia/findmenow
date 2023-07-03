@@ -326,6 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     http.get(uri).then((response) {
       if (response.statusCode == 200) {
         var jsondata = jsonDecode(response.body);
+        print(jsondata);
         if (jsondata['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Registration Successfully")));

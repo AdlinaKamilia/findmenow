@@ -1,9 +1,15 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:findmenow/model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
+import '../MyConfig.dart';
+
 class CheckInScreen extends StatefulWidget {
-  const CheckInScreen({super.key});
+  final User user;
+  const CheckInScreen({super.key, required this.user});
 
   @override
   State<CheckInScreen> createState() => _CheckInScreenState();
@@ -78,6 +84,18 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       fontFamily: 'Times New Roman'),
                 ),
               ),
+              const SizedBox(
+                height: 20,
+              ),
+              Container(
+                  child: Column(
+                children: [
+                  Text("Locality: " + currAddress),
+                  Text("State: " + currState),
+                  Text("Latitude: " + prlat),
+                  Text("Longitude: " + prlong),
+                ],
+              )),
             ],
           ),
         ),
@@ -85,7 +103,48 @@ class _CheckInScreenState extends State<CheckInScreen> {
     );
   }
 
-  checkIn() {}
+  checkIn() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          title: Text("In Process of Adding New Item"),
+          content: LinearProgressIndicator(),
+        );
+      },
+    );
+    _determinePosition();
+    String userId = widget.user.id.toString();
+    String latitude = prlat;
+    String longitude = prlong;
+    String locality = currAddress;
+    String state = currState;
+
+    Uri uri = Uri.parse("${MyConfig().server}/location_user.php?"
+        "user_id=$userId&latitude=$latitude&longitude=$longitude&locality=$locality&state=$state");
+
+    print(uri.toString());
+    http.get(uri).then((response) {
+      if (response.statusCode == 200) {
+        var jsondata = jsonDecode(response.body);
+        print(jsondata);
+        if (jsondata['status'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Check-In Successful")));
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Check-In Failed")));
+        }
+        Navigator.pop(context);
+      } else {
+        print(response.statusCode);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Check-In Failed")));
+        Navigator.pop(context);
+      }
+    });
+  }
+
   void _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;

@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:findmenow/MyConfig.dart';
 import 'package:findmenow/screens/checkinscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../model/user.dart';
 import 'registrationscreen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -125,8 +130,44 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void onLogin() {
-    Navigator.push(context,
-        MaterialPageRoute(builder: (content) => const CheckInScreen()));
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Check your input")));
+    }
+    String email = _emailEditingController.text;
+    String password = _passwordEditingController.text;
+    Uri uri = Uri.parse("${MyConfig().server}/login_user.php?"
+        "email=$email&password=$password");
+
+    print(uri.toString());
+    http.get(uri).then((response) {
+      if (response.statusCode == 200) {
+        var jsondata = jsonDecode(response.body);
+        print(jsondata.toString());
+        if (jsondata['status'] == 'success') {
+          User user = User.fromJson(jsondata['data']);
+          print(user.email);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Login Success")));
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (content) => CheckInScreen(
+                        user: user,
+                      )),
+              (Route<dynamic> route) => false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Registrations Failed")));
+        }
+        //Navigator.pop(context);
+      } else {
+        print(response.statusCode);
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Registrations Failed")));
+        Navigator.pop(context);
+      }
+    });
   }
 
   void _goToRegister() {
